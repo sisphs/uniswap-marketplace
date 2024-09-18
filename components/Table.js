@@ -1,7 +1,5 @@
-import React from "react";
-
-const Table = () => {
+function Table() {
   return <div>Table</div>;
-};
+}
 
 export default Table;

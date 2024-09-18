@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { swapTokenToToken } from "@/utils/context";
+import {
+  swapTokenToToken,
+  removeLiquidity,
+  addLiquidity,
+} from "@/utils/context";
 import SwapField from "./SwapField";
 import TransactionStatus from "./TransactionStatus";
 import toast, { Toaster } from "react-hot-toast";
@@ -17,6 +21,8 @@ const SwapComponent = () => {
 
   const [inputValue, setInputValue] = useState();
   const [outputValue, setOutputValue] = useState();
+
+  const [lpAmount, setLpAmount] = useState();
 
   const inputValueRef = useRef();
   const outputValueRef = useRef();
@@ -99,18 +105,18 @@ const SwapComponent = () => {
     }
   }, [outputValue, srcToken]);
 
-  const handleReverseExchange = (e) => {
-    isReversed.current = !isReversed.current;
-    setCurrentRef(isReversed.current);
+  // const handleReverseExchange = (e) => {
+  //   isReversed.current = !isReversed.current;
+  //   setCurrentRef(isReversed.current);
 
-    // swap token (srcToken <=> destToken)
-    // swap value (inputValue <=> outputValue)
-    setInputValue(outputValue);
-    setOutputValue(inputValue);
+  //   // swap token (srcToken <=> destToken)
+  //   // swap value (inputValue <=> outputValue)
+  //   setInputValue(outputValue);
+  //   setOutputValue(inputValue);
 
-    setSrcToken(destToken);
-    setDestToken(srcToken);
-  };
+  //   setSrcToken(destToken);
+  //   setDestToken(srcToken);
+  // };
 
   const getSwapBtnClassName = () => {
     let className = "p-4 w-full my-2 rounded-xl";
@@ -123,12 +129,27 @@ const SwapComponent = () => {
     return className;
   };
 
-  const handleSwap = async () => {
+  const addLp = async () => {
     setTxPending(true);
-    const receipt = await swapTokenToToken(
+    const receipt = await addLiquidity(
       getTokenPairId(srcToken, destToken),
-      Number(inputValue),
-      srcToken
+      inputValue,
+      outputValue
+    );
+    setTxPending(false);
+
+    if (receipt.message) {
+      notifyError(receipt.message);
+    } else {
+      notifySuccess();
+    }
+  };
+
+  const removeLp = async () => {
+    setTxPending(true);
+    const receipt = await removeLiquidity(
+      getTokenPairId(srcToken, destToken),
+      lpAmount
     );
     setTxPending(false);
 
@@ -142,18 +163,18 @@ const SwapComponent = () => {
   return (
     <div className="border-[1px] border-[#ffeaa7] bg-[#ffeaa7] w-[500px] p-4 px-6 rounded-xl">
       <div className="flex items-center justify-between py-4 px-1 text-[#212429]">
-        <p className="text-xl">Swap Token</p>
+        <p className="text-xl">Add or remove liquidity</p>
         <Cog />
       </div>
       <div className="relative bg-[#212429] p-4 py-6 rounded-xl mb-2 border-[2px] border-transparent hover:border-zinc-600">
         {srcTokenComp}
 
-        <div
-          className="absolute left-1/2 -translate-x-1/2 -border-6 h-10 p-1 bg-[#212429] border-4 border-zinc-900 text-zinc-300 rounded-xl cursor-pointer hover:scale-110"
-          onClick={handleReverseExchange}
+        {/* <div
+          className="absolute left-1/2 -translate-x-1/2 -border-6 h-10 p-1 bg-[#212429] border-4 border-zinc-900 text-zinc-300 rounded-xl"
+          // onClick={handleReverseExchange}
         >
           {!currentRef ? <ArrowDown /> : <ArrowUp />}
-        </div>
+        </div> */}
       </div>
       <div className="bg-[#212429] p-4 py-6 rounded-xl mt-2 border-[2px] border-transparent hover:border-zinc-600">
         {destTokenComp}
@@ -162,12 +183,29 @@ const SwapComponent = () => {
         className={getSwapBtnClassName()}
         onClick={() => {
           if (swapBtnText === SWAP) {
-            handleSwap();
+            addLp();
           }
         }}
       >
-        {swapBtnText}
+        Add Liquidity
       </button>
+      <div className="flex justify-between items-center">
+        <input
+          type={"number"}
+          className="w-3/5 outline-none h-14 px-8 appearance-none text-3xl bg-[#212429] p-4 rounded-xl py-4"
+          value={lpAmount}
+          placeholder={"0.0"}
+          onChange={(e) => setLpAmount(e.target.value)}
+        />
+        <button
+          className={`p-4 w-40 my-2 rounded-xl ${styles.bg_iconcc}`}
+          onClick={() => {
+            removeLp();
+          }}
+        >
+          Remove Liquidity
+        </button>
+      </div>
       {txPending && <TransactionStatus />}
 
       <Toaster />
